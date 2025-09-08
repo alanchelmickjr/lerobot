@@ -15,8 +15,10 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
+from typing import Optional
 
 from lerobot.cameras import CameraConfig
+from lerobot.motors.motor_safety import SafetyThresholds
 
 from ..config import RobotConfig
 
@@ -39,3 +41,16 @@ class SO101FollowerConfig(RobotConfig):
 
     # Set to `True` for backward compatibility with previous policies/dataset
     use_degrees: bool = False
+
+    # Safety configuration - ENABLED BY DEFAULT for servo protection
+    enable_safety_monitoring: bool = True
+    safety_thresholds: Optional[SafetyThresholds] = None
+    
+    # Safety parameters (used if safety_thresholds is None)
+    temperature_warning: float = 40.0  # °C
+    temperature_critical: float = 45.0  # °C
+    temperature_shutdown: float = 50.0  # °C
+    current_stall_threshold: float = 800.0  # mA
+    current_stall_duration: float = 0.5  # seconds
+    soft_start_duration: float = 1.0  # seconds
+    monitor_frequency: float = 10.0  # Hz
