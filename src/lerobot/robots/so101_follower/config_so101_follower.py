@@ -42,7 +42,8 @@ class SO101FollowerConfig(RobotConfig):
     # Set to `True` for backward compatibility with previous policies/dataset
     use_degrees: bool = False
 
-    # Safety configuration - ENABLED BY DEFAULT for servo protection
+    # Safety configuration - ENABLED with optimized polling frequency
+    # Reduced frequency from 10Hz to 2Hz to avoid performance impact
     enable_safety_monitoring: bool = True
     safety_thresholds: Optional[SafetyThresholds] = None
     
@@ -53,4 +54,16 @@ class SO101FollowerConfig(RobotConfig):
     current_stall_threshold: float = 800.0  # mA
     current_stall_duration: float = 0.5  # seconds
     soft_start_duration: float = 1.0  # seconds
-    monitor_frequency: float = 10.0  # Hz
+    monitor_frequency: float = 2.0  # Hz - Reduced from 10Hz for smoother operation
+    
+    # Collision detection configuration - ENABLED for intelligent obstacle handling
+    enable_collision_detection: bool = True
+    collision_torque_threshold: float = 0.3  # Normalized torque (0-1)
+    collision_current_threshold: float = 900.0  # mA - sustained current indicating collision
+    collision_duration: float = 0.3  # seconds - how long force must be sustained
+    collision_backoff_distance: float = 0.1  # Normalized units - how far to back off
+    collision_max_retries: int = 3  # Max attempts before aborting movement
+    
+    # Auto-recalibration triggers
+    auto_recalibrate_on_collisions: int = 5  # Recalibrate after this many collisions
+    auto_recalibrate_time_hours: float = 1.0  # Recalibrate after this many hours

@@ -61,6 +61,24 @@
   <p><a href="https://huggingface.co/docs/lerobot/so101">
       See the full SO-101 tutorial here.</a></p>
 
+  <p><strong>📚 New!</strong> Check out the <a href="SO101_IMPROVEMENTS.md">SO-101 Improvements & Enhancements</a> including:</p>
+  <ul>
+    <li>🛡️ Motor Safety System - Protects your expensive servos</li>
+    <li>🤖 <strong>Collision Detection</strong> - Intelligent backoff & auto-recovery!</li>
+    <li>🎮 User-Friendly UI - No more complex CLI commands</li>
+    <li>🔬 Motor Diagnostics - Real-time health monitoring</li>
+    <li>🚀 One-command setup scripts - Works on macOS too!</li>
+  </ul>
+  
+  <p><strong>🆕 Collision Detection Features:</strong></p>
+  <ul>
+    <li>Detects obstacles and backs off safely</li>
+    <li>Auto-recalibration after multiple collisions</li>
+    <li>Adaptive performance monitoring (0.5-10Hz)</li>
+    <li>Safe for human interaction - test with your hand!</li>
+  </ul>
+  <p>See <a href="docs/collision_detection_system.md">Collision Detection Guide</a> for details.</p>
+
   <p>Want to take it to the next level? Make your SO-101 mobile by building LeKiwi!</p>
   <p>Check out the <a href="https://huggingface.co/docs/lerobot/lekiwi">LeKiwi tutorial</a> and bring your robot to life on wheels.</p>
 

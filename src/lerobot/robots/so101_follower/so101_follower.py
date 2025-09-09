@@ -27,6 +27,11 @@ from lerobot.motors.feetech import (
     OperatingMode,
 )
 from lerobot.motors.motor_safety import MotorSafetyMonitor, SafetyThresholds
+from lerobot.motors.collision_detection import (
+    CollisionDetector,
+    CollisionConfig,
+    SmartCollisionSafetySystem
+)
 
 from ..robot import Robot
 from ..utils import ensure_safe_goal_position
@@ -60,6 +65,19 @@ class SO101Follower(Robot):
             calibration=self.calibration,
         )
         self.cameras = make_cameras_from_configs(config.cameras)
+        
+        # Initialize collision detection system
+        self.collision_system: Optional[SmartCollisionSafetySystem] = None
+        if hasattr(config, 'enable_collision_detection') and config.enable_collision_detection:
+            collision_config = CollisionConfig(
+                torque_threshold=getattr(config, 'collision_torque_threshold', 0.3),
+                current_threshold=getattr(config, 'collision_current_threshold', 900.0),
+                collision_duration=getattr(config, 'collision_duration', 0.3),
+                backoff_distance=getattr(config, 'collision_backoff_distance', 0.1),
+                max_retries=getattr(config, 'collision_max_retries', 3)
+            )
+            self.collision_system = SmartCollisionSafetySystem(self, collision_config)
+            logger.info("Collision detection system initialized")
         
         # Initialize safety monitor if enabled
         self.safety_monitor: Optional[MotorSafetyMonitor] = None
@@ -226,12 +244,14 @@ class SO101Follower(Robot):
         The relative action magnitude may be clipped depending on the configuration parameter
         `max_relative_target`. In this case, the action sent differs from original action.
         Thus, this function always returns the action actually sent.
+        
+        Now includes collision detection with intelligent backoff.
 
         Raises:
             RobotDeviceNotConnectedError: if robot is not connected.
 
         Returns:
-            the action sent to the motors, potentially clipped.
+            the action sent to the motors, potentially clipped or backed off.
         """
         if not self.is_connected:
             raise DeviceNotConnectedError(f"{self} is not connected.")
@@ -258,22 +278,42 @@ class SO101Follower(Robot):
             goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in goal_pos.items()}
             goal_pos = ensure_safe_goal_position(goal_present_pos, self.config.max_relative_target)
 
-        # Apply soft start if enabled
-        if self.safety_monitor and self.config.soft_start_duration > 0:
-            present_pos = self.bus.sync_read("Present_Position")
-            for motor, target in goal_pos.items():
-                if motor in present_pos:
-                    # Generate soft start trajectory
-                    trajectory = self.safety_monitor.apply_soft_start(
-                        motor, target, present_pos[motor]
-                    )
-                    # Send intermediate positions (first few steps)
-                    for i, pos in enumerate(trajectory[:3]):  # Send first 3 steps quickly
-                        self.bus.write("Goal_Position", motor, pos)
-                        time.sleep(self.config.soft_start_duration / 10)
+        # Use collision detection system if available
+        if self.collision_system:
+            # Execute movement with collision detection
+            result = self.collision_system.safe_move_with_collision_detection(
+                goal_pos,
+                timeout=2.0  # 2 second timeout for each movement
+            )
+            
+            # Log any collisions
+            if result['collisions']:
+                for motor, collision_info in result['collisions'].items():
+                    logger.warning(f"Collision on {motor}: {collision_info}")
+            
+            # Return final positions achieved
+            if result['final_positions']:
+                return {f"{motor}.pos": val for motor, val in result['final_positions'].items()}
+        else:
+            # Traditional movement without collision detection
+            
+            # Apply soft start if enabled
+            if self.safety_monitor and self.config.soft_start_duration > 0:
+                present_pos = self.bus.sync_read("Present_Position")
+                for motor, target in goal_pos.items():
+                    if motor in present_pos:
+                        # Generate soft start trajectory
+                        trajectory = self.safety_monitor.apply_soft_start(
+                            motor, target, present_pos[motor]
+                        )
+                        # Send intermediate positions (first few steps)
+                        for i, pos in enumerate(trajectory[:3]):  # Send first 3 steps quickly
+                            self.bus.write("Goal_Position", motor, pos)
+                            time.sleep(self.config.soft_start_duration / 10)
 
-        # Send goal position to the arm
-        self.bus.sync_write("Goal_Position", goal_pos)
+            # Send goal position to the arm
+            self.bus.sync_write("Goal_Position", goal_pos)
+        
         return {f"{motor}.pos": val for motor, val in goal_pos.items()}
 
     def disconnect(self):
@@ -303,6 +343,18 @@ class SO101Follower(Robot):
     def get_safety_status(self) -> dict[str, Any]:
         """Get current safety monitoring status."""
         if self.safety_monitor:
-            return self.safety_monitor.get_safety_report()
+            report = self.safety_monitor.get_safety_report()
+            
+            # Add collision detection metrics if available
+            if self.collision_system:
+                metrics = self.collision_system.collision_detector.metrics
+                report['collision_detection'] = {
+                    'smoothness': metrics.smoothness_score,
+                    'latency_ms': metrics.latency_ms,
+                    'monitoring_freq': metrics.optimal_frequency,
+                    'total_collisions': self.collision_system.collision_detector.total_collisions
+                }
+            
+            return report
         else:
             return {"status": "monitoring_disabled"}
