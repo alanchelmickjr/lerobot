@@ -17,7 +17,7 @@
 import logging
 import time
 from functools import cached_property
-from typing import Any
+from typing import Any, Optional
 
 from lerobot.cameras.utils import make_cameras_from_configs
 from lerobot.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
@@ -26,6 +26,7 @@ from lerobot.motors.feetech import (
     FeetechMotorsBus,
     OperatingMode,
 )
+from lerobot.motors.motor_safety import MotorSafetyMonitor, SafetyThresholds
 
 from ..robot import Robot
 from ..utils import ensure_safe_goal_position
@@ -52,13 +53,43 @@ class SO101Follower(Robot):
                 "shoulder_pan": Motor(1, "sts3215", norm_mode_body),
                 "shoulder_lift": Motor(2, "sts3215", norm_mode_body),
                 "elbow_flex": Motor(3, "sts3215", norm_mode_body),
-                "wrist_flex": Motor(4, "sts3215", norm_mode_body),
+                "wrist_flex": Motor(4, "sts3215_alt", norm_mode_body),  # Using alt model for corrupted motor 4
                 "wrist_roll": Motor(5, "sts3215", norm_mode_body),
                 "gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
             },
             calibration=self.calibration,
         )
         self.cameras = make_cameras_from_configs(config.cameras)
+        
+        # Initialize safety monitor if enabled
+        self.safety_monitor: Optional[MotorSafetyMonitor] = None
+        if config.enable_safety_monitoring:
+            # Create safety thresholds from config
+            if config.safety_thresholds is None:
+                safety_thresholds = SafetyThresholds(
+                    temperature_warning=config.temperature_warning,
+                    temperature_critical=config.temperature_critical,
+                    temperature_shutdown=config.temperature_shutdown,
+                    current_stall_threshold=config.current_stall_threshold,
+                    current_stall_duration=config.current_stall_duration,
+                    soft_start_duration=config.soft_start_duration,
+                    monitor_frequency=config.monitor_frequency,
+                )
+            else:
+                safety_thresholds = config.safety_thresholds
+            
+            # Safety event callback
+            def safety_callback(event_type: str, motor: Optional[str], value: Any) -> None:
+                logger.warning(f"Safety event: {event_type} for motor {motor} with value {value}")
+                if event_type == "emergency_stop":
+                    logger.critical("Emergency stop triggered - disabling all motors")
+                    self.disconnect()
+            
+            self.safety_monitor = MotorSafetyMonitor(
+                self.bus,
+                thresholds=safety_thresholds,
+                callback=safety_callback,
+            )
 
     @property
     def _motors_ft(self) -> dict[str, type]:
@@ -101,6 +132,12 @@ class SO101Follower(Robot):
             cam.connect()
 
         self.configure()
+        
+        # Start safety monitoring if enabled
+        if self.safety_monitor:
+            self.safety_monitor.start_monitoring()
+            logger.info("Safety monitoring started")
+        
         logger.info(f"{self} connected.")
 
     @property
@@ -199,6 +236,19 @@ class SO101Follower(Robot):
         if not self.is_connected:
             raise DeviceNotConnectedError(f"{self} is not connected.")
 
+        # Check safety status before sending action
+        if self.safety_monitor:
+            safety_report = self.safety_monitor.get_safety_report()
+            if safety_report["emergency_stop"]:
+                logger.error("Cannot send action - emergency stop is active")
+                return action
+            elif safety_report["status"] == "critical":
+                logger.warning("Safety status is critical - reducing action magnitude")
+                # Reduce action magnitude for safety
+                for key in action:
+                    if key.endswith(".pos"):
+                        action[key] *= 0.5
+
         goal_pos = {key.removesuffix(".pos"): val for key, val in action.items() if key.endswith(".pos")}
 
         # Cap goal position when too far away from present position.
@@ -208,6 +258,20 @@ class SO101Follower(Robot):
             goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in goal_pos.items()}
             goal_pos = ensure_safe_goal_position(goal_present_pos, self.config.max_relative_target)
 
+        # Apply soft start if enabled
+        if self.safety_monitor and self.config.soft_start_duration > 0:
+            present_pos = self.bus.sync_read("Present_Position")
+            for motor, target in goal_pos.items():
+                if motor in present_pos:
+                    # Generate soft start trajectory
+                    trajectory = self.safety_monitor.apply_soft_start(
+                        motor, target, present_pos[motor]
+                    )
+                    # Send intermediate positions (first few steps)
+                    for i, pos in enumerate(trajectory[:3]):  # Send first 3 steps quickly
+                        self.bus.write("Goal_Position", motor, pos)
+                        time.sleep(self.config.soft_start_duration / 10)
+
         # Send goal position to the arm
         self.bus.sync_write("Goal_Position", goal_pos)
         return {f"{motor}.pos": val for motor, val in goal_pos.items()}
@@ -216,8 +280,29 @@ class SO101Follower(Robot):
         if not self.is_connected:
             raise DeviceNotConnectedError(f"{self} is not connected.")
 
+        # Stop safety monitoring
+        if self.safety_monitor:
+            self.safety_monitor.stop_monitoring()
+            logger.info("Safety monitoring stopped")
+
         self.bus.disconnect(self.config.disable_torque_on_disconnect)
         for cam in self.cameras.values():
             cam.disconnect()
 
         logger.info(f"{self} disconnected.")
+
+    def emergency_stop(self) -> None:
+        """Trigger emergency stop - immediately disable all motors."""
+        if self.safety_monitor:
+            self.safety_monitor.emergency_stop()
+        else:
+            # Fallback if safety monitor not enabled
+            logger.critical("EMERGENCY STOP - disabling all motors")
+            self.bus.disable_torque()
+
+    def get_safety_status(self) -> dict[str, Any]:
+        """Get current safety monitoring status."""
+        if self.safety_monitor:
+            return self.safety_monitor.get_safety_report()
+        else:
+            return {"status": "monitoring_disabled"}
