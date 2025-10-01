@@ -86,6 +86,8 @@ class WorkingTouchUI:
         try:
             status = self.api.get_system_status()
             if status['ready']:
+                # Store system info for UI adaptation
+                self.system_status = status
                 self.root.after(0, self.show_ready_ui)
             else:
                 error_msg = f"❌ System not ready\nHardware: {status['hardware']['status']}"
@@ -94,41 +96,69 @@ class WorkingTouchUI:
             self.root.after(0, lambda: self.show_status(f"❌ Error: {str(e)}", '#e74c3c'))
     
     def show_ready_ui(self):
-        """Show ready UI with working buttons"""
-        self.show_status("🎉 System Ready! Select mode:", '#27ae60')
+        """Show ready UI adapted to detected hardware configuration"""
+        hardware = self.system_status['hardware']
+        status = hardware['status']
+        arm_count = hardware.get('arm_count', 0)
         
-        # Only show INDEPENDENT for now (since it's working)
-        independent_btn = tk.Button(
-            self.button_frame,
-            text="🆓 INDEPENDENT\n(2 Leaders → 2 Followers)",
-            font=('Arial', 18, 'bold'),
-            bg='#3498db',
-            fg='white',
-            activebackground='#2980b9',
-            relief='flat',
-            pady=30,
-            command=self.start_independent_mode
-        )
-        independent_btn.pack(pady=20, padx=50, fill='x')
+        self.show_status(f"🎉 {status.upper()} System Ready!\n{arm_count} arm(s) detected", '#27ae60')
         
-        # Coming soon buttons
-        for name, color in [("🤝 COORDINATED", "#95a5a6"), ("🪞 MIRROR", "#95a5a6")]:
+        # Dynamic modes based on detected hardware
+        if status == 'single_arm':
+            modes = [
+                ("🤖 SINGLE ARM\n(Leader → Follower)", "#3498db", self.start_single_arm_mode),
+            ]
+        elif status == 'bi_manual':
+            # Keep our working bi-manual modes!
+            modes = [
+                ("🤝 COORDINATED\n(Left Leader → Both Followers)", "#27ae60", self.start_coordinated_mode),
+                ("🆓 INDEPENDENT\n(2 Leaders → 2 Followers)", "#3498db", self.start_independent_mode),
+                ("🪞 MIRROR\n(Left Leader → Mirror Both)", "#9b59b6", self.start_mirror_mode)
+            ]
+        elif status == 'tri_manual':
+            modes = [
+                ("🔺 TRI-MANUAL\n(3 Leaders → 3 Followers)", "#e67e22", self.start_tri_manual_mode),
+            ]
+        elif status == 'quad_manual':
+            modes = [
+                ("🔲 QUAD-MANUAL\n(4 Leaders → 4 Followers)", "#8e44ad", self.start_quad_manual_mode),
+            ]
+        else:
+            # Fallback for unsupported configurations
+            modes = [
+                (f"⚠️ {status.upper()}\n(Configuration not supported yet)", "#95a5a6", None),
+            ]
+        
+        # Create buttons dynamically
+        for text, color, command in modes:
             btn = tk.Button(
                 self.button_frame,
-                text=f"{name}\n(Coming Soon)",
-                font=('Arial', 16),
+                text=text,
+                font=('Arial', 16, 'bold'),
                 bg=color,
                 fg='white',
+                activebackground=color,
                 relief='flat',
-                pady=20,
-                state='disabled'
+                pady=25,
+                command=command,
+                state='normal' if command else 'disabled'
             )
-            btn.pack(pady=10, padx=50, fill='x')
+            btn.pack(pady=12, padx=50, fill='x')
+    
+    def start_coordinated_mode(self):
+        """Start COORDINATED mode using proven logic"""
+        self.show_status("🔗 Starting COORDINATED mode...", '#f39c12')
+        threading.Thread(target=self.run_coordinated_control, daemon=True).start()
     
     def start_independent_mode(self):
         """Start INDEPENDENT mode using proven logic"""
         self.show_status("🔗 Starting INDEPENDENT mode...", '#f39c12')
         threading.Thread(target=self.run_independent_control, daemon=True).start()
+    
+    def start_mirror_mode(self):
+        """Start MIRROR mode using proven logic"""
+        self.show_status("🔗 Starting MIRROR mode...", '#f39c12')
+        threading.Thread(target=self.run_mirror_control, daemon=True).start()
     
     def run_independent_control(self):
         """Run INDEPENDENT control (same logic as test script)"""
@@ -186,13 +216,147 @@ class WorkingTouchUI:
         finally:
             self.cleanup_robots()
     
-    def show_control_interface(self):
-        """Show control interface"""
+    def run_coordinated_control(self):
+        """Run COORDINATED control - LEFT leader controls BOTH followers"""
+        try:
+            # Get ports using API (same as INDEPENDENT)
+            status = self.api.get_system_status()
+            ports = status['hardware']['mapping']
+            
+            self.root.after(0, lambda: self.show_status("🤖 Connecting robots...", '#f39c12'))
+            
+            # COORDINATED config: Use ONLY left leader (avoid port duplication!)
+            robot_config = BiSO100FollowerConfig(
+                left_arm_port=ports['left_follower'],    # ACM2
+                right_arm_port=ports['right_follower'],  # ACM3
+                id="bimanual_follower"
+            )
+            
+            # FIX: Use separate unused port to avoid EOF error
+            teleop_config = BiSO100LeaderConfig(
+                left_arm_port=ports['left_leader'],     # ACM0 (left leader)
+                right_arm_port=ports['right_leader'],   # ACM1 (but ignore right input)
+                id="coordinated_leader"
+            )
+            
+            # Connect (same proven logic)
+            self.robot = BiSO100Follower(robot_config)
+            self.robot.connect()
+            
+            self.teleop = BiSO100Leader(teleop_config)
+            self.teleop.connect()
+            
+            # Show control interface
+            self.root.after(0, lambda: self.show_control_interface("COORDINATED"))
+            
+            # Start control loop (same proven pattern)
+            self.teleoperation_active = True
+            loop_count = 0
+            start_time = time.time()
+            
+            while self.teleoperation_active:
+                # Same proven control logic
+                action = self.teleop.get_action()
+                self.robot.send_action(action)
+                
+                # Update status
+                loop_count += 1
+                if loop_count % 200 == 0:
+                    elapsed = time.time() - start_time
+                    rate = loop_count / elapsed if elapsed > 0 else 0
+                    status_text = f"🎮 COORDINATED Active | {rate:.1f} Hz | Loops: {loop_count}"
+                    self.root.after(0, lambda t=status_text: self.show_status(t, '#27ae60'))
+                
+        except Exception as e:
+            error_msg = f"❌ Control error: {str(e)}"
+            self.root.after(0, lambda: self.show_status(error_msg, '#e74c3c'))
+        finally:
+            self.cleanup_robots()
+    
+    def run_mirror_control(self):
+        """Run MIRROR control - Same as COORDINATED (LEFT leader mirrors to both)"""
+        try:
+            # Get ports using API (same as others)
+            status = self.api.get_system_status()
+            ports = status['hardware']['mapping']
+            
+            self.root.after(0, lambda: self.show_status("🤖 Connecting robots...", '#f39c12'))
+            
+            # MIRROR config: Fix port duplication to avoid EOF error
+            robot_config = BiSO100FollowerConfig(
+                left_arm_port=ports['left_follower'],    # ACM2
+                right_arm_port=ports['right_follower'],  # ACM3
+                id="bimanual_follower"
+            )
+            
+            # FIX: Use separate ports to avoid EOF error (same as COORDINATED fix)
+            teleop_config = BiSO100LeaderConfig(
+                left_arm_port=ports['left_leader'],     # ACM0 (left leader - main control)
+                right_arm_port=ports['right_leader'],   # ACM1 (but ignore right input)
+                id="mirror_leader"
+            )
+            
+            # Connect (same proven logic)
+            self.robot = BiSO100Follower(robot_config)
+            self.robot.connect()
+            
+            self.teleop = BiSO100Leader(teleop_config)
+            self.teleop.connect()
+            
+            # Show control interface
+            self.root.after(0, lambda: self.show_control_interface("MIRROR"))
+            
+            # Start control loop (same proven pattern)
+            self.teleoperation_active = True
+            loop_count = 0
+            start_time = time.time()
+            
+            while self.teleoperation_active:
+                # Same proven control logic
+                action = self.teleop.get_action()
+                self.robot.send_action(action)
+                
+                # Update status
+                loop_count += 1
+                if loop_count % 200 == 0:
+                    elapsed = time.time() - start_time
+                    rate = loop_count / elapsed if elapsed > 0 else 0
+                    status_text = f"🎮 MIRROR Active | {rate:.1f} Hz | Loops: {loop_count}"
+                    self.root.after(0, lambda t=status_text: self.show_status(t, '#9b59b6'))
+                
+        except Exception as e:
+            error_msg = f"❌ Control error: {str(e)}"
+            self.root.after(0, lambda: self.show_status(error_msg, '#e74c3c'))
+        finally:
+            self.cleanup_robots()
+    
+    def show_control_interface(self, mode="INDEPENDENT"):
+        """Show control interface for any mode"""
         # Clear buttons
         for widget in self.button_frame.winfo_children():
             widget.destroy()
-            
-        self.show_status("🎮 INDEPENDENT MODE ACTIVE!\nMove BOTH leader arms", '#27ae60')
+        
+        # Mode-specific status and info
+        mode_config = {
+            'COORDINATED': {
+                'status': '🎮 COORDINATED MODE ACTIVE!\nMove LEFT leader arm',
+                'color': '#27ae60',
+                'info': 'Left Leader (ACM0) → BOTH Followers (ACM2+ACM3)'
+            },
+            'INDEPENDENT': {
+                'status': '🎮 INDEPENDENT MODE ACTIVE!\nMove BOTH leader arms',
+                'color': '#3498db',
+                'info': 'Left Leader (ACM0) → Left Follower (ACM2)\nRight Leader (ACM1) → Right Follower (ACM3)'
+            },
+            'MIRROR': {
+                'status': '🎮 MIRROR MODE ACTIVE!\nMove LEFT leader arm',
+                'color': '#9b59b6',
+                'info': 'Left Leader (ACM0) → Mirrors to BOTH Followers'
+            }
+        }
+        
+        config = mode_config.get(mode, mode_config['INDEPENDENT'])
+        self.show_status(config['status'], config['color'])
         
         # Stop button
         stop_btn = tk.Button(
@@ -207,10 +371,10 @@ class WorkingTouchUI:
         )
         stop_btn.pack(pady=30, padx=50, fill='x')
         
-        # Info
+        # Mode-specific info
         info = tk.Label(
             self.button_frame,
-            text="Left Leader (ACM0) → Left Follower (ACM2)\nRight Leader (ACM1) → Right Follower (ACM3)",
+            text=config['info'],
             font=('Arial', 12),
             bg='#2c3e50',
             fg='#bdc3c7'
@@ -230,6 +394,18 @@ class WorkingTouchUI:
         for widget in self.button_frame.winfo_children():
             widget.destroy()
         self.show_ready_ui()
+    
+    def start_single_arm_mode(self):
+        """Start single arm mode (placeholder)"""
+        self.show_status("🤖 Single arm mode coming soon!", '#95a5a6')
+        
+    def start_tri_manual_mode(self):
+        """Start tri-manual mode (placeholder)"""
+        self.show_status("🔺 Tri-manual mode coming soon!", '#95a5a6')
+        
+    def start_quad_manual_mode(self):
+        """Start quad-manual mode (placeholder)"""
+        self.show_status("🔲 Quad-manual mode coming soon!", '#95a5a6')
     
     def cleanup_robots(self):
         """Cleanup robot connections"""
