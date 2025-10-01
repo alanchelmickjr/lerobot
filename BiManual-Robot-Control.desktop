@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Bi-Manual Robot Control
+Comment=Touch interface for bi-manual SO101 coordination
+Exec=/bin/bash -c "source /home/feetech/miniconda3/etc/profile.d/conda.sh && conda activate lerobot && cd /home/feetech/lerobot && export DISPLAY=:0 && python working_touch_ui.py"
+Icon=applications-engineering
+Terminal=false
+Categories=Utility;Engineering;
+StartupNotify=true
+Keywords=robot;bimanual;touch;control;
+MimeType=

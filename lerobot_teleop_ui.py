@@ -100,12 +100,20 @@ def identify_ports_interactive() -> Tuple[str, str]:
     
     if len(all_ports) == 0:
         print(f"{Colors.RED}❌ No USB ports found!{Colors.RESET}")
-        print("\nPlease connect both SO101 arms and try again.")
+        print("\nPlease connect SO101 arms and try again.")
         sys.exit(1)
     
     print(f"Found {len(all_ports)} USB port(s):{Colors.RESET}")
     for port in all_ports:
         print(f"  • {port}")
+    
+    # Check for bi-manual setup (4 ports)
+    if len(all_ports) == 4:
+        print(f"\n{Colors.GREEN}🎉 4-port setup detected - Bi-manual SO101 available!{Colors.RESET}")
+        print(f"{Colors.CYAN}Launch bi-manual interface? (y/n):{Colors.RESET} ", end="")
+        if input().lower().startswith('y'):
+            launch_bimanual_ui()
+            return None, None  # Won't reach here
     
     # Try automatic detection by voltage
     print(f"\n{Colors.CYAN}Detecting arms by voltage...{Colors.RESET}")
@@ -428,11 +436,219 @@ def auto_identify_arms():
     
     return leader_port, follower_port
 
+def detect_bimanual_setup():
+    """Simple 4-port bi-manual detection"""
+    ports = find_usb_ports()
+    if len(ports) != 4:
+        return None
+    
+    leaders = []
+    followers = []
+    
+    for port in ports:
+        try:
+            from lerobot.motors.feetech import FeetechMotorsBus
+            bus = FeetechMotorsBus(port=port, motors={})
+            bus.connect()
+            found_ids = bus.scan()
+            
+            if found_ids:
+                voltage = bus.read("Present_Voltage", found_ids[0]) / 10.0
+                if voltage < 8.0:
+                    leaders.append(port)
+                elif voltage > 10.0:
+                    followers.append(port)
+            bus.disconnect()
+        except:
+            pass
+    
+    if len(leaders) == 2 and len(followers) == 2:
+        return {
+            "left_leader": leaders[0], "left_follower": followers[0],
+            "right_leader": leaders[1], "right_follower": followers[1]
+        }
+    return None
+
+def select_coordination_mode():
+    """Select bimanual coordination mode"""
+    print_header()
+    print(f"{Colors.CYAN}🤖🤖 Select Coordination Mode{Colors.RESET}\n")
+    
+    print(f"{Colors.GREEN}1. 🤝 COORDINATED - Arms work together{Colors.RESET}")
+    print(f"{Colors.BLUE}2. 🆓 INDEPENDENT - Separate arm control{Colors.RESET}")
+    print(f"{Colors.MAGENTA}3. 🪞 MIRROR - Right mirrors left{Colors.RESET}")
+    
+    while True:
+        choice = input(f"\n{Colors.CYAN}Select mode (1-3):{Colors.RESET} ").strip()
+        if choice == "1": return "coordinated"
+        elif choice == "2": return "independent"
+        elif choice == "3": return "mirror"
+        print(f"{Colors.RED}Invalid choice{Colors.RESET}")
+
+def run_bimanual_teleoperation(setup, mode):
+    """Run bimanual teleoperation - simplified"""
+    print_header()
+    print(f"{Colors.GREEN}🤖🤖 Bi-Manual Teleoperation - {mode.upper()}{Colors.RESET}\n")
+    
+    try:
+        # Import bimanual classes
+        from lerobot.robots.bi_so100_follower import BiSO100FollowerConfig, BiSO100Follower
+        from lerobot.teleoperators.bi_so100_leader import BiSO100LeaderConfig, BiSO100Leader
+        
+        # Configure
+        robot_config = BiSO100FollowerConfig(
+            left_arm_port=setup['left_follower'],
+            right_arm_port=setup['right_follower'],
+            id="bimanual_follower"
+        )
+        
+        teleop_config = BiSO100LeaderConfig(
+            left_arm_port=setup['left_leader'],
+            right_arm_port=setup['right_leader'],
+            id="bimanual_leader"
+        )
+        
+        print("Connecting bimanual system...")
+        robot = BiSO100Follower(robot_config)
+        teleop = BiSO100Leader(teleop_config)
+        
+        robot.connect()
+        teleop.connect()
+        
+        print(f"{Colors.GREEN}✅ Connected! Mode: {mode.upper()}{Colors.RESET}")
+        print(f"\n{Colors.YELLOW}Controls:{Colors.RESET}")
+        if mode == "independent":
+            print("  • Left leader → Left follower")
+            print("  • Right leader → Right follower")
+        elif mode == "mirror":
+            print("  • Left leader → Both followers (mirrored)")
+        else:  # coordinated
+            print("  • Both leaders → Coordinated movement")
+        
+        print("  • Press Ctrl+C to stop")
+        print("\n" + "="*50)
+        
+        # Simple teleoperation loop
+        loop_count = 0
+        start_time = time.time()
+        
+        while True:
+            try:
+                actions = teleop.get_action()
+                
+                # Apply mode logic
+                if mode == "mirror":
+                    # Left controls both, mirror right
+                    left_actions = {k: v for k, v in actions.items() if k.startswith('left_')}
+                    right_actions = {k.replace('left_', 'right_'): v for k, v in left_actions.items()}
+                    final_actions = {**left_actions, **right_actions}
+                else:
+                    # Independent or coordinated (both use same mapping for now)
+                    final_actions = actions
+                
+                robot.send_action(final_actions)
+                
+                # Status
+                loop_count += 1
+                if loop_count % 100 == 0:
+                    elapsed = time.time() - start_time
+                    rate = loop_count / elapsed
+                    print(f"\r  📊 {mode.upper()} | {rate:.1f} Hz | {elapsed:.1f}s", end="")
+                
+            except KeyboardInterrupt:
+                break
+                
+        print(f"\n\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
+        robot.disconnect()
+        teleop.disconnect()
+        print(f"{Colors.GREEN}✅ Done!{Colors.RESET}")
+        
+    except Exception as e:
+        print(f"{Colors.RED}❌ Error: {e}{Colors.RESET}")
+
+def launch_bimanual_ui():
+    """Launch bimanual interface"""
+    setup = detect_bimanual_setup()
+    if not setup:
+        print(f"{Colors.RED}❌ 4-port setup not detected{Colors.RESET}")
+        return
+    
+    print(f"{Colors.GREEN}✅ Bimanual setup detected:{Colors.RESET}")
+    for key, port in setup.items():
+        print(f"  {key}: {port}")
+    
+    # Quick start or configuration
+    print(f"\n{Colors.CYAN}1. 🚀 Quick Start{Colors.RESET}")
+    print(f"{Colors.CYAN}2. 🔧 Calibrate First{Colors.RESET}")
+    
+    choice = input(f"\nSelect (1-2): ").strip()
+    
+    if choice == "2":
+        print("Calibrating bimanual arms...")
+        # Add calibration here if needed
+    
+    mode = select_coordination_mode()
+    run_bimanual_teleoperation(setup, mode)
+
 def main_menu():
     """Main interactive menu"""
     while True:
         print_header()
-        print(f"{Colors.CYAN}Main Menu:{Colors.RESET}\n")
+        
+        # Check for setup type
+        all_ports = find_usb_ports()
+        if len(all_ports) == 4:
+            bimanual_setup = detect_bimanual_setup()
+            if bimanual_setup:
+                print(f"{Colors.GREEN}🎉 4-Port Bi-Manual Setup Detected!{Colors.RESET}\n")
+                print(f"{Colors.CYAN}Bi-Manual Menu:{Colors.RESET}\n")
+                print("  1. 🚀 Bi-Manual Quick Start")
+                print("  2. 🔧 Calibrate Both Arms")
+                print("  3. 🎮 Bi-Manual Teleoperation")
+                print("  4. 🔄 Switch to Single Arm Mode")
+                print("  5. 🔬 Motor Diagnostics")
+                print("  6. ❌ Exit")
+                
+                choice = input(f"\n{Colors.YELLOW}Select option (1-6):{Colors.RESET} ").strip()
+                
+                if choice == "1":
+                    # Bi-manual quick start
+                    mode = select_coordination_mode()
+                    run_bimanual_teleoperation(bimanual_setup, mode)
+                    
+                elif choice == "2":
+                    print(f"{Colors.YELLOW}Bi-manual calibration - feature coming soon!{Colors.RESET}")
+                    input("Press Enter to continue...")
+                    
+                elif choice == "3":
+                    mode = select_coordination_mode()
+                    run_bimanual_teleoperation(bimanual_setup, mode)
+                    
+                elif choice == "4":
+                    # Force single arm mode
+                    print(f"{Colors.BLUE}Switching to single arm mode...{Colors.RESET}")
+                    single_arm_menu()
+                    
+                elif choice == "5":
+                    diagnose_motors_menu()
+                    
+                elif choice == "6":
+                    print(f"\n{Colors.GREEN}Goodbye! 🤖🤖{Colors.RESET}")
+                    break
+                else:
+                    print(f"{Colors.RED}Invalid option{Colors.RESET}")
+                    time.sleep(1)
+                continue
+        
+        # Single arm menu (original)
+        single_arm_menu()
+        break
+
+def single_arm_menu():
+    """Single arm menu (original functionality)"""
+    while True:
+        print_header()
+        print(f"{Colors.CYAN}Single Arm Menu:{Colors.RESET}\n")
         print("  1. 🚀 Quick Start (Auto-detect & Run)")
         print("  2. 🔧 Calibrate Follower Arm")
         print("  3. 🎮 Start Teleoperation")
@@ -440,14 +656,17 @@ def main_menu():
         print("  5. 🔬 Motor Diagnostics")
         print("  6. ❌ Exit")
         
-        choice = input(f"\n{Colors.YELLOW}Select option (1-5):{Colors.RESET} ").strip()
+        choice = input(f"\n{Colors.YELLOW}Select option (1-6):{Colors.RESET} ").strip()
         
         if choice == "1":
             # Quick start - do everything automatically
             print(f"\n{Colors.CYAN}🚀 Quick Start Mode{Colors.RESET}")
             
             # Identify ports
-            leader_port, follower_port = identify_ports_interactive()
+            result = identify_ports_interactive()
+            if result == (None, None):  # Bimanual was launched
+                return
+            leader_port, follower_port = result
             
             # Calibrate
             print(f"\n{Colors.YELLOW}Calibrate follower arm? (recommended for first use){Colors.RESET}")
@@ -482,12 +701,18 @@ def main_menu():
             
         elif choice == "3":
             # Manual teleoperation
-            leader_port, follower_port = identify_ports_interactive()
+            result = identify_ports_interactive()
+            if result == (None, None):  # Bimanual was launched
+                return
+            leader_port, follower_port = result
             run_teleoperation(leader_port, follower_port)
             
         elif choice == "4":
             # Just identify ports
-            leader_port, follower_port = identify_ports_interactive()
+            result = identify_ports_interactive()
+            if result == (None, None):  # Bimanual was launched
+                return
+            leader_port, follower_port = result
             print(f"\n{Colors.GREEN}Ports identified!{Colors.RESET}")
             print(f"  Leader: {leader_port}")
             print(f"  Follower: {follower_port}")
