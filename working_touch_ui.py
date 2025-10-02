@@ -255,9 +255,22 @@ class WorkingTouchUI:
             start_time = time.time()
             
             while self.teleoperation_active:
-                # Same proven control logic
+                # COORDINATED: Use only LEFT leader actions for both followers
                 action = self.teleop.get_action()
-                self.robot.send_action(action)
+                
+                # Extract left leader actions
+                left_actions = {k: v for k, v in action.items() if k.startswith('left_')}
+                
+                # Create coordinated action: left leader → both followers
+                coordinated_action = {}
+                for left_key, left_val in left_actions.items():
+                    # Send to left follower
+                    coordinated_action[left_key] = left_val
+                    # Mirror to right follower
+                    right_key = left_key.replace('left_', 'right_')
+                    coordinated_action[right_key] = left_val
+                
+                self.robot.send_action(coordinated_action)
                 
                 # Update status
                 loop_count += 1

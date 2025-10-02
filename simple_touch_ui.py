@@ -466,14 +466,20 @@ class SimpleTouchUI:
                 # Get action from leader
                 action = self.teleop.get_action()
                 
-                # Handle coordinated mode - single leader controls both followers
+                # Handle coordinated mode - LEFT leader controls both followers
                 if mode == "COORDINATED":
-                    # Single SO100 leader returns single arm action
-                    # Mirror this to both left and right followers for coordinated movement
-                    coordinated_action = {
-                        'left_arm': action,  # Single action to left
-                        'right_arm': action  # Same action mirrored to right
-                    }
+                    # Extract left leader actions only
+                    left_actions = {k: v for k, v in action.items() if k.startswith('left_')}
+                    
+                    # Create coordinated action: left leader → both followers
+                    coordinated_action = {}
+                    for left_key, left_val in left_actions.items():
+                        # Send to left follower
+                        coordinated_action[left_key] = left_val
+                        # Mirror to right follower
+                        right_key = left_key.replace('left_', 'right_')
+                        coordinated_action[right_key] = left_val
+                    
                     action = coordinated_action
                 
                 # Send to followers

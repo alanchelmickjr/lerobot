@@ -542,8 +542,22 @@ def run_bimanual_teleoperation(setup, mode):
                     left_actions = {k: v for k, v in actions.items() if k.startswith('left_')}
                     right_actions = {k.replace('left_', 'right_'): v for k, v in left_actions.items()}
                     final_actions = {**left_actions, **right_actions}
+                elif mode == "coordinated":
+                    # Coordinated mode: LEFT leader controls BOTH followers
+                    left_actions = {k: v for k, v in actions.items() if k.startswith('left_')}
+                    
+                    # Create coordinated follower actions - left leader mirrors to both
+                    final_actions = {}
+                    
+                    # Apply left leader actions to both followers
+                    for left_key, left_val in left_actions.items():
+                        # Send to left follower
+                        final_actions[left_key] = left_val
+                        # Mirror to right follower
+                        right_key = left_key.replace('left_', 'right_')
+                        final_actions[right_key] = left_val
                 else:
-                    # Independent or coordinated (both use same mapping for now)
+                    # Independent mode
                     final_actions = actions
                 
                 robot.send_action(final_actions)

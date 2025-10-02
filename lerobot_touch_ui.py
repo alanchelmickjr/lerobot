@@ -431,7 +431,23 @@ class TouchUI:
                     left_actions = {k: v for k, v in actions.items() if k.startswith('left_')}
                     right_actions = {k.replace('left_', 'right_'): v for k, v in left_actions.items()}
                     final_actions = {**left_actions, **right_actions}
+                elif mode == "coordinated":
+                    # Coordinated mode: LEFT leader controls BOTH followers
+                    left_actions = {k: v for k, v in actions.items() if k.startswith('left_')}
+                    
+                    # Mirror left leader actions to both followers for coordinated movement
+                    final_actions = {}
+                    
+                    # Apply left leader action to both left and right followers
+                    for left_key, left_val in left_actions.items():
+                        # Send left leader action to left follower
+                        final_actions[left_key] = left_val
+                        
+                        # Mirror left leader action to right follower
+                        right_key = left_key.replace('left_', 'right_')
+                        final_actions[right_key] = left_val
                 else:
+                    # Independent mode (default)
                     final_actions = actions
                 
                 # Send to robot

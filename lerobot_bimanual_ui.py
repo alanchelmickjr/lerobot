@@ -321,9 +321,19 @@ def run_bimanual_teleoperation(setup: Dict, mode: CoordinationMode):
                     follower_actions = {**left_actions, **right_actions}
                     
                 elif mode == CoordinationMode.COORDINATED:
-                    # Advanced coordination - can be customized based on task
-                    # For now, use independent but could add coordination logic
-                    follower_actions = leader_actions
+                    # Coordinated mode: LEFT leader controls BOTH followers
+                    left_actions = {k: v for k, v in leader_actions.items() if k.startswith('left_')}
+                    
+                    # Create coordinated follower actions - left leader mirrors to both
+                    follower_actions = {}
+                    
+                    # Apply left leader actions to both followers
+                    for left_key, left_val in left_actions.items():
+                        # Send to left follower
+                        follower_actions[left_key] = left_val
+                        # Mirror to right follower
+                        right_key = left_key.replace('left_', 'right_')
+                        follower_actions[right_key] = left_val
                 
                 # Send actions to followers
                 robot.send_action(follower_actions)
