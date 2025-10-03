@@ -198,9 +198,22 @@ class WorkingTouchUI:
             start_time = time.time()
             
             while self.teleoperation_active:
-                # Same proven control logic
+                # MIRROR control logic - mirror left actions to both followers
                 action = self.teleop.get_action()
-                self.robot.send_action(action)
+
+                # Extract left leader actions only
+                left_actions = {k: v for k, v in action.items() if k.startswith('left_')}
+
+                # Mirror left actions to both followers
+                mirror_action = {}
+                for left_key, left_val in left_actions.items():
+                    # Send to left follower
+                    mirror_action[left_key] = left_val
+                    # Mirror to right follower
+                    right_key = left_key.replace('left_', 'right_')
+                    mirror_action[right_key] = left_val
+
+                self.robot.send_action(mirror_action)
                 
                 # Update status
                 loop_count += 1

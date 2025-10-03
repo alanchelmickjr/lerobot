@@ -15,6 +15,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
+from typing import Optional
 
 from ..config import TeleoperatorConfig
 
@@ -23,8 +24,8 @@ from ..config import TeleoperatorConfig
 @dataclass
 class BiSO100LeaderConfig(TeleoperatorConfig):
     left_arm_port: str
-    right_arm_port: str
-    
+    right_arm_port: Optional[str] = None
+
     def __post_init__(self):
         """Validate that left and right ports are different"""
         if self.right_arm_port is not None and self.left_arm_port == self.right_arm_port:

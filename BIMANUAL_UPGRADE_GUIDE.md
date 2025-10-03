@@ -110,17 +110,16 @@ python lerobot_bimanual_ui.py
 ## 🤝 Coordination Modes Explained
 
 ### 🤝 COORDINATED Mode
-**Best for: Complex bimanual tasks**
+**Status: Basic coordination implemented - suitable for simple tasks**
 
-- Both leader arms control coordinated follower movement
-- Perfect for pick-and-place operations
-- Requires coordination between operators
-- Arms work as a team
+- Both leader arms control coordinated follower movement for basic dual-arm operations
+- Suitable for simple pick-and-place and coordinated movements
+- **Note**: Current implementation lacks advanced algorithms for genuine bimanual coordination, task-aware coordination, collision avoidance, and context-dependent strategies. These features are planned for future development.
 
 **Example Use Cases:**
-- Bimanual object manipulation
-- Coordinated assembly tasks
-- Two-handed demonstrations
+- Basic bimanual object manipulation
+- Simple coordinated assembly tasks
+- Two-handed demonstrations (basic)
 
 ### 🆓 INDEPENDENT Mode  
 **Best for: Parallel tasks**

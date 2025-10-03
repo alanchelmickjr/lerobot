@@ -35,25 +35,33 @@ class SimpleTouchUI:
     def __init__(self):
         self.api = BiManualAPI()
         self.root = tk.Tk()
-        
+
         # Robot control state
         self.robot = None
         self.teleop = None
         self.teleoperation_active = False
         self.control_thread = None
-        
+
         # Camera state
         self.camera = None
         self.camera_active = False
         self.camera_thread = None
         self.camera_stop_event = threading.Event()
-        
+
         # UI elements
         self.video_label = None
         self.overlay_frame = None
-        
+
+        # Screen saver state
+        self.idle_timeout = 5 * 60 * 1000  # 5 minutes in milliseconds
+        self.last_activity = time.time()
+        self.idle_timer = None
+        self.screensaver_overlay = None
+        self.screensaver_active = False
+
         self.setup_ui()
         self.setup_camera()
+        self.setup_idle_detection()
         
     def setup_ui(self):
         """Setup touch-optimized UI with camera background"""
@@ -118,6 +126,10 @@ class SimpleTouchUI:
                 command=command
             )
             btn.pack(pady=10, padx=50, fill='x')
+            # Bind button press to reset idle timer
+            btn.bind('<Button-1>', lambda e, cmd=command: (self.reset_idle_timer(e), cmd()))
+            # Bind button press to reset idle timer
+            btn.bind('<Button-1>', lambda e, cmd=command: (self.reset_idle_timer(e), cmd()))
             
         # Exit button (always visible at bottom)
         exit_frame = tk.Frame(self.overlay_frame, bg='black')
@@ -136,6 +148,8 @@ class SimpleTouchUI:
             command=self.exit_app
         )
         exit_btn.pack(side='right')
+        # Bind button press to reset idle timer
+        exit_btn.bind('<Button-1>', lambda e: (self.reset_idle_timer(e), self.exit_app()))
         
         # Camera toggle button
         if CAMERA_AVAILABLE:
@@ -152,10 +166,82 @@ class SimpleTouchUI:
                 command=self.toggle_camera
             )
             camera_btn.pack(side='left')
+            # Bind button press to reset idle timer
+            camera_btn.bind('<Button-1>', lambda e: (self.reset_idle_timer(e), self.toggle_camera()))
         
+        # Create screen saver overlay (initially hidden)
+        self.create_screensaver_overlay()
+
         # Check system in background
         threading.Thread(target=self.check_system, daemon=True).start()
-    
+
+    def create_screensaver_overlay(self):
+        """Create full-screen screen saver overlay"""
+        # Create overlay frame that covers entire screen
+        self.screensaver_overlay = tk.Frame(self.root, bg='black')
+        self.screensaver_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.screensaver_overlay.lower()  # Put behind other elements initially
+
+        # Center the message
+        message_label = tk.Label(
+            self.screensaver_overlay,
+            text="Tap Me To Use",
+            font=('Arial', 48, 'bold'),
+            fg='white',
+            bg='black'
+        )
+        message_label.place(relx=0.5, rely=0.5, anchor='center')
+
+        # Bind any click/touch on overlay to dismiss
+        self.screensaver_overlay.bind('<Button-1>', self.dismiss_screensaver)
+        self.screensaver_overlay.bind('<Button-3>', self.dismiss_screensaver)
+        message_label.bind('<Button-1>', self.dismiss_screensaver)
+        message_label.bind('<Button-3>', self.dismiss_screensaver)
+
+    def setup_idle_detection(self):
+        """Setup idle timeout detection and activity monitoring"""
+        # Bind activity events to reset idle timer
+        self.root.bind('<Button-1>', self.reset_idle_timer)  # Left click
+        self.root.bind('<Button-3>', self.reset_idle_timer)  # Right click
+        self.root.bind('<Key>', self.reset_idle_timer)      # Any key press
+        self.root.bind('<Motion>', self.reset_idle_timer)   # Mouse motion
+        self.root.focus_set()  # Ensure root gets key events
+
+        # Start idle timer
+        self.reset_idle_timer()
+
+    def reset_idle_timer(self, event=None):
+        """Reset idle timer on user activity"""
+        self.last_activity = time.time()
+
+        # Hide screen saver if active
+        if self.screensaver_active:
+            self.dismiss_screensaver()
+
+        # Cancel existing timer and start new one
+        if self.idle_timer:
+            self.root.after_cancel(self.idle_timer)
+
+        self.idle_timer = self.root.after(self.idle_timeout, self.show_screensaver)
+
+    def show_screensaver(self):
+        """Show screen saver overlay"""
+        # Don't show screen saver if teleoperation is active
+        if self.teleoperation_active:
+            return
+
+        if not self.screensaver_active:
+            self.screensaver_active = True
+            self.screensaver_overlay.lift()  # Bring to front
+            self.screensaver_overlay.focus_set()  # Ensure overlay gets events
+
+    def dismiss_screensaver(self, event=None):
+        """Dismiss screen saver overlay"""
+        if self.screensaver_active:
+            self.screensaver_active = False
+            self.screensaver_overlay.lower()  # Send to back
+            self.reset_idle_timer()  # Reset timer
+
     def setup_camera(self):
         """Initialize OAK-D S2 camera"""
         if not CAMERA_AVAILABLE:
@@ -466,12 +552,12 @@ class SimpleTouchUI:
                 # Get action from leader
                 action = self.teleop.get_action()
                 
-                # Handle coordinated mode - LEFT leader controls both followers
+                # Handle coordinated mode - Use basic coordination logic
                 if mode == "COORDINATED":
-                    # Extract left leader actions only
+                    # Extract left leader actions only (maintains backward compatibility)
                     left_actions = {k: v for k, v in action.items() if k.startswith('left_')}
-                    
-                    # Create coordinated action: left leader → both followers
+
+                    # Basic coordination: mirror left actions to both followers
                     coordinated_action = {}
                     for left_key, left_val in left_actions.items():
                         # Send to left follower
@@ -479,8 +565,22 @@ class SimpleTouchUI:
                         # Mirror to right follower
                         right_key = left_key.replace('left_', 'right_')
                         coordinated_action[right_key] = left_val
-                    
                     action = coordinated_action
+
+                # Handle mirror mode - Left leader controls both followers with mirroring
+                elif mode == "MIRROR":
+                    # Extract left leader actions only
+                    left_actions = {k: v for k, v in action.items() if k.startswith('left_')}
+
+                    # Mirror left actions to both followers
+                    mirror_action = {}
+                    for left_key, left_val in left_actions.items():
+                        # Send to left follower
+                        mirror_action[left_key] = left_val
+                        # Mirror to right follower
+                        right_key = left_key.replace('left_', 'right_')
+                        mirror_action[right_key] = left_val
+                    action = mirror_action
                 
                 # Send to followers
                 self.robot.send_action(action)
@@ -533,6 +633,8 @@ class SimpleTouchUI:
             command=self.stop_control
         )
         stop_btn.pack(fill='x', padx=5, pady=5)
+        # Bind button press to reset idle timer
+        stop_btn.bind('<Button-1>', lambda e: (self.reset_idle_timer(e), self.stop_control()))
         
         # Show mode info
         mode_info = {
@@ -618,6 +720,11 @@ class SimpleTouchUI:
         self.teleoperation_active = False
         self.stop_camera()  # Stop camera if running
         self._cleanup_robots()
+
+        # Cancel idle timer
+        if self.idle_timer:
+            self.root.after_cancel(self.idle_timer)
+
         self.root.quit()
         
     def run(self):

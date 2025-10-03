@@ -39,9 +39,9 @@ python3 bimanual_api.py
 ## Touch Interface Usage
 1. **Touch desktop icon**: "Bi-Manual Robot Control"
 2. **See mode selection**:
-   - 🤝 **COORDINATED** (Green) - Arms work together
-   - 🆓 **INDEPENDENT** (Blue) - Left→Left, Right→Right  
-   - 🪞 **MIRROR** (Purple) - Left controls both
+   - 🤝 **COORDINATED** (Green) - Basic coordinated movement for simple tasks
+   - 🆓 **INDEPENDENT** (Blue) - Left→Left, Right→Right (fully implemented)
+   - 🪞 **MIRROR** (Purple) - Left controls both (fully implemented)
 
 ## Architecture
 ```

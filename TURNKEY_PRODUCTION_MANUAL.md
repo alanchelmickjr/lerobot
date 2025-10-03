@@ -39,9 +39,9 @@ Your **Coofun Mini-PC** is now configured as a **professional turnkey robot syst
 ## 🎮 **OPERATION MODES**
 
 ### **Coordination Modes** (Touch Selection)
-- 🤝 **COORDINATED**: Arms work together synchronously
-- 🆓 **INDEPENDENT**: Left→Left, Right→Right control  
-- 🪞 **MIRROR**: Left leader controls both followers
+- 🤝 **COORDINATED**: Basic coordinated movement for simple tasks (advanced coordination features planned)
+- 🆓 **INDEPENDENT**: Left→Left, Right→Right control (fully implemented and working)
+- 🪞 **MIRROR**: Left leader controls both followers (fully implemented and working)
 
 ### **Professional Features**
 - **Auto-detection**: System scans and configures automatically

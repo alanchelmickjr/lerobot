@@ -63,9 +63,9 @@ curl -sSL https://raw.githubusercontent.com/YOUR-FORK/lerobot/main/upgrade_to_bi
 
 All coordination modes are integrated into the existing touch UI system:
 
-### 🤝 **COORDINATED Mode** 
-- Left leader controls both followers for synchronized tasks
-- Ideal for complex dual-arm manipulation
+### 🤝 **COORDINATED Mode**
+- Basic coordinated movement for simple synchronized tasks (advanced coordination algorithms for genuine bimanual coordination, task-aware coordination, collision avoidance, and context-dependent strategies planned for future development)
+- Suitable for simple dual-arm operations
 
 ### 🆓 **INDEPENDENT Mode**
 - Each leader controls its own follower (left→left, right→right)  
@@ -207,9 +207,9 @@ curl -sSL https://raw.githubusercontent.com/YOUR-FORK/lerobot/main/upgrade_to_bi
 **🎯 ORIGINAL REQUEST:** "if they can select different config from ui for join, independent and mirror I would kiss you"
 
 **✅ DELIVERED:**
-- 🤝 **COORDINATED** (Joint) mode selection
-- 🆓 **INDEPENDENT** mode selection  
-- 🪞 **MIRROR** mode selection
+- 🤝 **COORDINATED** (Joint) mode selection (basic implementation)
+- 🆓 **INDEPENDENT** mode selection (fully working)
+- 🪞 **MIRROR** mode selection (fully working)
 - 📱 **Touch-friendly UI** for 7" screen setup
 - 🔍 **Auto-detection** for seamless operation
 - 🚀 **One-liner deployment** for easy updates

@@ -7,6 +7,14 @@ import glob
 import logging
 import sys
 from pathlib import Path
+from typing import Dict, Optional
+
+# Import coordination modules
+try:
+    from lerobot.coordination import EnhancedCoordinator, CoordinationMode
+    COORDINATION_AVAILABLE = True
+except ImportError:
+    COORDINATION_AVAILABLE = False
 
 class BiManualAPI:
     """Clean API for bi-manual robot detection and control"""
@@ -14,6 +22,14 @@ class BiManualAPI:
     def __init__(self, log_level=logging.INFO):
         logging.basicConfig(level=log_level)
         self.logger = logging.getLogger(__name__)
+
+        # Initialize coordination if available
+        self.coordinator = None
+        if COORDINATION_AVAILABLE:
+            self.coordinator = EnhancedCoordinator()
+            self.logger.info("✅ Enhanced coordination initialized")
+        else:
+            self.logger.warning("⚠️ Enhanced coordination not available")
         
     def detect_hardware(self):
         """Detect scalable robot hardware setup (single, bi, tri, quad-manual)"""
@@ -116,12 +132,59 @@ class BiManualAPI:
         """Get complete system status"""
         hardware = self.detect_hardware()
         imports_ok = self.test_imports()
-        
-        return {
+
+        status = {
             'hardware': hardware,
             'imports_ok': imports_ok,
+            'coordination_available': COORDINATION_AVAILABLE,
             'ready': hardware['status'] == 'bi_manual' and imports_ok
         }
+
+        # Add coordination information
+        if COORDINATION_AVAILABLE:
+            status['coordination'] = {
+                'algorithms_available': self.get_available_algorithms(),
+                'current_mode': self.coordinator.coordination_mode.value if self.coordinator else None,
+                'stats': self.coordinator.get_coordination_stats() if self.coordinator else {}
+            }
+        else:
+            status['coordination'] = None
+
+        return status
+
+    def get_available_algorithms(self) -> list:
+        """Get list of available coordination algorithms"""
+        if not COORDINATION_AVAILABLE:
+            return []
+
+        return [mode.value for mode in CoordinationMode]
+
+    def compute_enhanced_coordination(self, leader_action: Dict, task_context: Optional[str] = None) -> Dict:
+        """Compute enhanced coordinated actions using advanced algorithms"""
+        if not COORDINATION_AVAILABLE or not self.coordinator:
+            # Fallback to basic coordination (simple mirroring)
+            self.logger.warning("Enhanced coordination not available, using basic coordination")
+            return self._basic_coordination(leader_action)
+
+        try:
+            return self.coordinator.compute_coordinated_actions(leader_action, task_context)
+        except Exception as e:
+            self.logger.error(f"Enhanced coordination failed: {e}, falling back to basic")
+            return self._basic_coordination(leader_action)
+
+    def _basic_coordination(self, leader_action: Dict) -> Dict:
+        """Basic coordination fallback (backward compatible)"""
+        coordinated_action = {}
+
+        for key, value in leader_action.items():
+            if key.startswith('left_'):
+                # Send to left follower
+                coordinated_action[key] = value
+                # Mirror to right follower
+                right_key = key.replace('left_', 'right_')
+                coordinated_action[right_key] = value
+
+        return coordinated_action
 
 def main():
     """Simple CLI test"""
