@@ -9,6 +9,8 @@ import time
 import threading
 import signal
 import serial.tools.list_ports
+import logging
+from datetime import datetime
 from typing import Optional, Tuple, Dict, List
 from enum import Enum
 
@@ -45,6 +47,57 @@ class Colors:
     RESET = '\033[0m'
     BOLD = '\033[1m'
 
+class UILogger:
+    """Logger that stores messages for UI display and file logging"""
+    def __init__(self, log_file="bimanual_control.log"):
+        self.log_file = log_file
+        self.messages = []
+        self.max_messages = 100
+        
+        # Setup file logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger(__name__)
+    
+    def info(self, message):
+        """Log info message"""
+        self.logger.info(message)
+        self._add_message("INFO", message)
+    
+    def error(self, message):
+        """Log error message"""
+        self.logger.error(message)
+        self._add_message("ERROR", message)
+    
+    def warning(self, message):
+        """Log warning message"""
+        self.logger.warning(message)
+        self._add_message("WARNING", message)
+    
+    def _add_message(self, level, message):
+        """Add message to in-memory buffer"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.messages.append(f"[{timestamp}] {level}: {message}")
+        if len(self.messages) > self.max_messages:
+            self.messages.pop(0)
+    
+    def get_recent_logs(self, n=20):
+        """Get recent log messages"""
+        return self.messages[-n:]
+    
+    def clear(self):
+        """Clear in-memory log buffer"""
+        self.messages = []
+
+# Global logger instance
+logger = UILogger()
+
 def clear_screen():
     """Clear terminal screen"""
     os.system('clear' if os.name == 'posix' else 'cls')
@@ -61,6 +114,7 @@ def print_header():
 
 def find_usb_ports() -> List[str]:
     """Find all USB serial ports"""
+    logger.info("Scanning for USB serial ports...")
     ports = []
     for port in serial.tools.list_ports.comports():
         device_lower = port.device.lower()
@@ -73,6 +127,7 @@ def find_usb_ports() -> List[str]:
         if device not in ports:
             ports.append(device)
     
+    logger.info(f"Found {len(ports)} USB ports: {ports}")
     return sorted(ports)
 
 def identify_arm_by_voltage(port: str) -> Optional[str]:
@@ -100,11 +155,13 @@ def identify_arm_by_voltage(port: str) -> Optional[str]:
 
 def detect_bimanual_setup() -> Optional[Dict]:
     """Detect 4-port bi-manual setup automatically"""
+    logger.info("Starting bi-manual setup detection")
     print(f"{Colors.YELLOW}🔍 Scanning for bi-manual setup...{Colors.RESET}")
     
     ports = find_usb_ports()
     
     if len(ports) != 4:
+        logger.warning(f"Expected 4 ports, found {len(ports)}")
         return None
     
     print(f"Found 4 ports - analyzing configuration...")
@@ -124,14 +181,17 @@ def detect_bimanual_setup() -> Optional[Dict]:
         print(f"  {port}: {port_type}")
     
     if len(leaders) == 2 and len(followers) == 2:
-        return {
+        setup = {
             "left_leader": leaders[0],
-            "left_follower": followers[0], 
+            "left_follower": followers[0],
             "right_leader": leaders[1],
             "right_follower": followers[1],
             "all_ports": ports
         }
+        logger.info(f"Bi-manual setup detected: {setup}")
+        return setup
     
+    logger.warning(f"Invalid configuration: {len(leaders)} leaders, {len(followers)} followers")
     return None
 
 def select_coordination_mode() -> CoordinationMode:
@@ -185,6 +245,7 @@ def select_coordination_mode() -> CoordinationMode:
 
 def calibrate_bimanual_arms(setup: Dict) -> bool:
     """Calibrate both follower arms"""
+    logger.info("Starting bi-manual calibration")
     print_header()
     print(f"{Colors.YELLOW}🔧 Calibrating Bi-Manual Arms{Colors.RESET}\n")
     
@@ -200,20 +261,25 @@ def calibrate_bimanual_arms(setup: Dict) -> bool:
         )
         
         print("\n🤖 Connecting to bi-manual follower...")
+        logger.info("Connecting to bi-manual follower for calibration")
         robot = BiSO100Follower(config)
         robot.connect(calibrate=False)
         
         print("🎯 Starting calibration...")
         print(f"{Colors.YELLOW}⚠️  Both arms will move! Ensure clear space.{Colors.RESET}")
+        logger.info("Starting calibration routine...")
         time.sleep(3)
         
         robot.calibrate()
         
         print(f"{Colors.GREEN}✅ Bi-manual calibration complete!{Colors.RESET}")
+        logger.info("Bi-manual calibration completed successfully")
         robot.disconnect()
         return True
         
     except Exception as e:
+        error_msg = f"Bi-manual calibration failed: {str(e)}"
+        logger.error(error_msg)
         print(f"\n{Colors.RED}{'='*70}{Colors.RESET}")
         print(f"{Colors.RED}❌ BI-MANUAL CALIBRATION FAILED{Colors.RESET}")
         print(f"{Colors.RED}{'='*70}{Colors.RESET}")
@@ -222,6 +288,7 @@ def calibrate_bimanual_arms(setup: Dict) -> bool:
 
 def run_bimanual_teleoperation(setup: Dict, mode: CoordinationMode):
     """Run bi-manual teleoperation with selected mode"""
+    logger.info(f"Starting bi-manual teleoperation in {mode.value} mode")
     print_header()
     print(f"{Colors.GREEN}🤖🤖 Starting Bi-Manual Teleoperation{Colors.RESET}\n")
     
@@ -254,13 +321,44 @@ def run_bimanual_teleoperation(setup: Dict, mode: CoordinationMode):
         )
         
         print("\n🔗 Connecting to bi-manual system...")
+        logger.info("Connecting to follower robot...")
         robot = BiSO100Follower(follower_config)
+        
+        try:
+            robot.connect(calibrate=False)
+            logger.info("Follower robot connected successfully")
+        except EOFError:
+            error_msg = "Follower arms must be calibrated before use. Run calibration script first."
+            logger.error(error_msg)
+            print(f"{Colors.RED}❌ {error_msg}{Colors.RESET}")
+            return False
+        except Exception as e:
+            error_msg = f"Follower connection failed: {str(e)}"
+            logger.error(error_msg)
+            print(f"{Colors.RED}❌ {error_msg}{Colors.RESET}")
+            return False
+        
+        logger.info("Connecting to leader robot...")
         teleop = BiSO100Leader(leader_config)
         
-        robot.connect()
-        teleop.connect()
+        try:
+            teleop.connect(calibrate=False)
+            logger.info("Leader robot connected successfully")
+        except EOFError:
+            error_msg = "Leader arms must be calibrated before use. Run calibration script first."
+            logger.error(error_msg)
+            print(f"{Colors.RED}❌ {error_msg}{Colors.RESET}")
+            robot.disconnect()
+            return False
+        except Exception as e:
+            error_msg = f"Leader connection failed: {str(e)}"
+            logger.error(error_msg)
+            print(f"{Colors.RED}❌ {error_msg}{Colors.RESET}")
+            robot.disconnect()
+            return False
         
         print(f"{Colors.GREEN}✅ Bi-manual system connected!{Colors.RESET}")
+        logger.info(f"Bi-manual system fully connected in {mode.value} mode")
         print("\n" + "="*70)
         print(f"{mode_color}BI-MANUAL TELEOPERATION ACTIVE - {mode.value.upper()} MODE{Colors.RESET}")
         print("="*70)
@@ -348,37 +446,46 @@ def run_bimanual_teleoperation(setup: Dict, mode: CoordinationMode):
                     print(f"\r  📊 {mode_color}{mode.value.upper()}{Colors.RESET} | Rate: {rate:.1f} Hz | Loops: {loop_count} | Time: {elapsed:.1f}s", end="")
                 
             except KeyboardInterrupt:
+                logger.info("Teleoperation interrupted by user")
                 break
             except Exception as e:
+                error_msg = f"Teleoperation error: {str(e)}"
+                logger.error(error_msg)
                 print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
                 time.sleep(0.1)
         
         # Cleanup
         print(f"\n\n{Colors.YELLOW}Shutting down bi-manual system...{Colors.RESET}")
+        logger.info("Disconnecting robots...")
         robot.disconnect()
         teleop.disconnect()
         print(f"{Colors.GREEN}✅ Bi-manual teleoperation stopped safely{Colors.RESET}")
+        logger.info("Bi-manual teleoperation stopped successfully")
         
     except Exception as e:
-        print(f"{Colors.RED}❌ Failed to start bi-manual teleoperation: {e}{Colors.RESET}")
+        error_msg = f"Failed to start bi-manual teleoperation: {str(e)}"
+        logger.error(error_msg)
+        print(f"{Colors.RED}❌ {error_msg}{Colors.RESET}")
         return False
     
     return True
 
 def bimanual_main_menu():
     """Main bi-manual menu with awesome options"""
+    logger.info("Bi-manual UI started")
     while True:
         print_header()
         print(f"{Colors.CYAN}Bi-Manual Control Menu:{Colors.RESET}\n")
         print("  1. 🚀 Quick Start Bi-Manual (Auto-detect & Run)")
-        print("  2. 🔧 Calibrate Both Arms") 
+        print("  2. 🔧 Calibrate Both Arms")
         print("  3. 🎮 Start Bi-Manual Teleoperation")
         print("  4. 🔍 Detect 4-Port Setup")
         print("  5. ⚙️  Mode Configuration Test")
-        print("  6. 🔙 Back to Single Arm Menu")
-        print("  7. ❌ Exit")
+        print("  6. 📋 View System Logs")
+        print("  7. 🔙 Back to Single Arm Menu")
+        print("  8. ❌ Exit")
         
-        choice = input(f"\n{Colors.YELLOW}Select option (1-7):{Colors.RESET} ").strip()
+        choice = input(f"\n{Colors.YELLOW}Select option (1-8):{Colors.RESET} ").strip()
         
         if choice == "1":
             # Quick start with full flow
@@ -392,7 +499,9 @@ def bimanual_main_menu():
             print(f"{Colors.GREEN}✅ 4-port bi-manual setup detected!{Colors.RESET}")
             
             # Select coordination mode
+            logger.info("User selecting coordination mode")
             mode = select_coordination_mode()
+            logger.info(f"User selected {mode.value} mode")
             
             # Ask about calibration
             print(f"\n{Colors.YELLOW}Calibrate follower arms first? (recommended){Colors.RESET}")
@@ -442,15 +551,37 @@ def bimanual_main_menu():
             input("\nPress Enter to continue...")
             
         elif choice == "6":
+            # View logs
+            print_header()
+            print(f"{Colors.CYAN}📋 Recent System Logs (last 30){Colors.RESET}\n")
+            logs = logger.get_recent_logs(30)
+            if logs:
+                for log in logs:
+                    # Color code by level
+                    if "ERROR" in log:
+                        print(f"{Colors.RED}{log}{Colors.RESET}")
+                    elif "WARNING" in log:
+                        print(f"{Colors.YELLOW}{log}{Colors.RESET}")
+                    else:
+                        print(log)
+            else:
+                print(f"{Colors.YELLOW}No logs yet{Colors.RESET}")
+            
+            print(f"\n{Colors.BLUE}Log file location: {logger.log_file}{Colors.RESET}")
+            input("\nPress Enter to continue...")
+            
+        elif choice == "7":
             # Back to single arm (would launch original UI)
             print(f"{Colors.BLUE}Launching single arm menu...{Colors.RESET}")
             try:
                 import subprocess
                 subprocess.run([sys.executable, "lerobot_teleop_ui.py"])
             except Exception as e:
+                logger.error(f"Could not launch single arm UI: {e}")
                 print(f"Could not launch single arm UI: {e}")
             
-        elif choice == "7":
+        elif choice == "8":
+            logger.info("User exiting application")
             print(f"\n{Colors.GREEN}Goodbye! 🤖🤖{Colors.RESET}")
             break
         else:

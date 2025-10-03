@@ -340,10 +340,10 @@ class SimpleTouchUI:
                 id="bimanual_follower"
             )
             
-            # COORDINATED: Use left leader port for both arms (same physical port)
+            # COORDINATED: Use BOTH leader ports (left controls both, right ignored in loop)
             teleop_config = BiSO100LeaderConfig(
                 left_arm_port=ports['left_leader'],
-                right_arm_port=ports['left_leader'],  # Same port - coordinated control
+                right_arm_port=ports['right_leader'],  # ✅ FIXED - use distinct port
                 id="coordinated_leader"
             )
             

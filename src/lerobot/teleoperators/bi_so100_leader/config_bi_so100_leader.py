@@ -24,3 +24,12 @@ from ..config import TeleoperatorConfig
 class BiSO100LeaderConfig(TeleoperatorConfig):
     left_arm_port: str
     right_arm_port: str
+    
+    def __post_init__(self):
+        """Validate that left and right ports are different"""
+        if self.right_arm_port is not None and self.left_arm_port == self.right_arm_port:
+            raise ValueError(
+                f"left_arm_port and right_arm_port cannot be the same. "
+                f"Both are set to: {self.left_arm_port}. "
+                f"Each arm requires its own distinct serial port to prevent EOF errors and connection failures."
+            )
