@@ -1,0 +1,295 @@
+
+> bom-calculator-frontend@1.0.0 dev
+> vite
+
+
+  VITE v5.4.20  ready in 170 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/addDays/index.js" for import "addDays"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:1:9:
+      1 │ import { addDays } from 'date-fns/addDays';
+        ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/addSeconds/index.js" for import "addSeconds"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:2:9:
+      2 │ import { addSeconds } from 'date-fns/addSeconds';
+        ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/addMinutes/index.js" for import "addMinutes"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:3:9:
+      3 │ import { addMinutes } from 'date-fns/addMinutes';
+        ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/addHours/index.js" for import "addHours"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:4:9:
+      4 │ import { addHours } from 'date-fns/addHours';
+        ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/addWeeks/index.js" for import "addWeeks"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:5:9:
+      5 │ import { addWeeks } from 'date-fns/addWeeks';
+        ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/addMonths/index.js" for import "addMonths"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:6:9:
+      6 │ import { addMonths } from 'date-fns/addMonths';
+        ╵          ~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/addYears/index.js" for import "addYears"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:7:9:
+      7 │ import { addYears } from 'date-fns/addYears';
+        ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/endOfDay/index.js" for import "endOfDay"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:8:9:
+      8 │ import { endOfDay } from 'date-fns/endOfDay';
+        ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/endOfWeek/index.js" for import "endOfWeek"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:9:9:
+      9 │ import { endOfWeek } from 'date-fns/endOfWeek';
+        ╵          ~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/endOfYear/index.js" for import "endOfYear"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:10:9:
+      10 │ import { endOfYear } from 'date-fns/endOfYear';
+         ╵          ~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/format/index.js" for import "format"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:11:9:
+      11 │ import { format as dateFnsFormat, longFormatters } from 'date-fns/...
+         ╵          ~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/format/index.js" for import "longFormatters"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:11:34:
+      11 │ ... format as dateFnsFormat, longFormatters } from 'date-fns/format';
+         ╵                              ~~~~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getDate/index.js" for import "getDate"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:12:9:
+      12 │ import { getDate } from 'date-fns/getDate';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getDaysInMonth/index.js" for import "getDaysInMonth"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:13:9:
+      13 │ import { getDaysInMonth } from 'date-fns/getDaysInMonth';
+         ╵          ~~~~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getHours/index.js" for import "getHours"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:14:9:
+      14 │ import { getHours } from 'date-fns/getHours';
+         ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getMinutes/index.js" for import "getMinutes"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:15:9:
+      15 │ import { getMinutes } from 'date-fns/getMinutes';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getMonth/index.js" for import "getMonth"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:16:9:
+      16 │ import { getMonth } from 'date-fns/getMonth';
+         ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getSeconds/index.js" for import "getSeconds"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:17:9:
+      17 │ import { getSeconds } from 'date-fns/getSeconds';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getMilliseconds/index.js" for import "getMilliseconds"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:18:9:
+      18 │ import { getMilliseconds } from 'date-fns/getMilliseconds';
+         ╵          ~~~~~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getWeek/index.js" for import "getWeek"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:19:9:
+      19 │ import { getWeek } from 'date-fns/getWeek';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/getYear/index.js" for import "getYear"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:20:9:
+      20 │ import { getYear } from 'date-fns/getYear';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isAfter/index.js" for import "isAfter"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:21:9:
+      21 │ import { isAfter } from 'date-fns/isAfter';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isBefore/index.js" for import "isBefore"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:22:9:
+      22 │ import { isBefore } from 'date-fns/isBefore';
+         ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isEqual/index.js" for import "isEqual"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:23:9:
+      23 │ import { isEqual } from 'date-fns/isEqual';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isSameDay/index.js" for import "isSameDay"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:24:9:
+      24 │ import { isSameDay } from 'date-fns/isSameDay';
+         ╵          ~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isSameYear/index.js" for import "isSameYear"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:25:9:
+      25 │ import { isSameYear } from 'date-fns/isSameYear';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isSameMonth/index.js" for import "isSameMonth"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:26:9:
+      26 │ import { isSameMonth } from 'date-fns/isSameMonth';
+         ╵          ~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isSameHour/index.js" for import "isSameHour"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:27:9:
+      27 │ import { isSameHour } from 'date-fns/isSameHour';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isValid/index.js" for import "isValid"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:28:9:
+      28 │ import { isValid } from 'date-fns/isValid';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/parse/index.js" for import "parse"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:29:9:
+      29 │ import { parse as dateFnsParse } from 'date-fns/parse';
+         ╵          ~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/setDate/index.js" for import "setDate"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:30:9:
+      30 │ import { setDate } from 'date-fns/setDate';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/setHours/index.js" for import "setHours"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:31:9:
+      31 │ import { setHours } from 'date-fns/setHours';
+         ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/setMinutes/index.js" for import "setMinutes"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:32:9:
+      32 │ import { setMinutes } from 'date-fns/setMinutes';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/setMonth/index.js" for import "setMonth"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:33:9:
+      33 │ import { setMonth } from 'date-fns/setMonth';
+         ╵          ~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/setSeconds/index.js" for import "setSeconds"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:34:9:
+      34 │ import { setSeconds } from 'date-fns/setSeconds';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/setMilliseconds/index.js" for import "setMilliseconds"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:35:9:
+      35 │ import { setMilliseconds } from 'date-fns/setMilliseconds';
+         ╵          ~~~~~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/setYear/index.js" for import "setYear"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:36:9:
+      36 │ import { setYear } from 'date-fns/setYear';
+         ╵          ~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/startOfDay/index.js" for import "startOfDay"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:37:9:
+      37 │ import { startOfDay } from 'date-fns/startOfDay';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/startOfMonth/index.js" for import "startOfMonth"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:38:9:
+      38 │ import { startOfMonth } from 'date-fns/startOfMonth';
+         ╵          ~~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/endOfMonth/index.js" for import "endOfMonth"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:39:9:
+      39 │ import { endOfMonth } from 'date-fns/endOfMonth';
+         ╵          ~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/startOfWeek/index.js" for import "startOfWeek"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:40:9:
+      40 │ import { startOfWeek } from 'date-fns/startOfWeek';
+         ╵          ~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/startOfYear/index.js" for import "startOfYear"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:41:9:
+      41 │ import { startOfYear } from 'date-fns/startOfYear';
+         ╵          ~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/isWithinInterval/index.js" for import "isWithinInterval"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:42:9:
+      42 │ import { isWithinInterval } from 'date-fns/isWithinInterval';
+         ╵          ~~~~~~~~~~~~~~~~
+
+✘ [ERROR] No matching export in "node_modules/date-fns/esm/locale/en-US/index.js" for import "enUS"
+
+    node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:43:9:
+      43 │ import { enUS } from 'date-fns/locale/en-US';
+         ╵          ~~~~
+
+8:04:14 PM [vite] Pre-transform error: Failed to resolve import "@components/Layout/Layout" from "src/App.tsx". Does the file exist?
+/Users/crackerjack/dev/GitHub/lerobot/src/lerobot/robots/bom_calculator/frontend/node_modules/esbuild/lib/main.js:1472
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 44 errors:
+node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:1:9: ERROR: No matching export in "node_modules/date-fns/esm/addDays/index.js" for import "addDays"
+node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:2:9: ERROR: No matching export in "node_modules/date-fns/esm/addSeconds/index.js" for import "addSeconds"
+node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:3:9: ERROR: No matching export in "node_modules/date-fns/esm/addMinutes/index.js" for import "addMinutes"
+node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:4:9: ERROR: No matching export in "node_modules/date-fns/esm/addHours/index.js" for import "addHours"
+node_modules/@mui/x-date-pickers/esm/AdapterDateFns/AdapterDateFns.js:5:9: ERROR: No matching export in "node_modules/date-fns/esm/addWeeks/index.js" for import "addWeeks"
+...
+    at failureErrorWithLog (/Users/crackerjack/dev/GitHub/lerobot/src/lerobot/robots/bom_calculator/frontend/node_modules/esbuild/lib/main.js:1472:15)
+    at /Users/crackerjack/dev/GitHub/lerobot/src/lerobot/robots/bom_calculator/frontend/node_modules/esbuild/lib/main.js:945:25
+    at /Users/crackerjack/dev/GitHub/lerobot/src/lerobot/robots/bom_calculator/frontend/node_modules/esbuild/lib/main.js:1353:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v24.7.0

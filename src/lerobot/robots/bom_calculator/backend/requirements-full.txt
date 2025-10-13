@@ -1,0 +1,54 @@
+# Full requirements for BOM Calculator Backend
+# Includes all packages for advanced features
+
+# Core web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.23
+alembic==1.13.0
+aiosqlite==0.19.0
+
+# Data validation and serialization  
+pydantic==2.5.2
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# Security and authentication (optional)
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# HTTP client for testing
+httpx==0.25.2
+
+# Caching and task queue (optional)
+redis==5.0.1
+celery==5.3.4
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# Code quality
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Monitoring and logging (optional)
+prometheus-client==0.19.0
+structlog==23.2.0
+
+# Data export/import
+pandas==2.1.4
+openpyxl==3.1.2
+
+# Performance
+orjson==3.9.10
+aiocache==0.12.2
+
+# Additional utilities
+python-dateutil==2.8.2
+pytz==2023.3

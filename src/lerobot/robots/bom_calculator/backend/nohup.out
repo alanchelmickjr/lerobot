@@ -1,0 +1,2 @@
+INFO:     Will watch for changes in these directories: ['/Users/crackerjack/dev/GitHub/lerobot/src/lerobot/robots/bom_calculator/backend']
+ERROR:    [Errno 48] Address already in use
